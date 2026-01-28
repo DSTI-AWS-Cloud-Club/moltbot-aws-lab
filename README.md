@@ -17,6 +17,8 @@ We will ask the bot to give us the last trends in Data, AI agents and Machine Le
 - If you want to know how people use MoltBot visit its [website](https://clawd.bot/)
 - Video explaining how to install MoltBot in an EC2 instance. [Video from AJ](https://x.com/techfrenAJ/status/2014934471095812547/video/1)
 - To configure a protection against injection attacks follow up the [tutorial](https://github.com/Dicklesworthstone/acip/tree/main/integrations/clawdbot) by Dicklesworthstone.
+
+### Local models
 - If you want to install a local Ollama model to be used by Moltbot go and visit this [video](https://www.youtube.com/watch?v=Idkkl6InPbU)
 
 ### About MPC
@@ -193,6 +195,8 @@ To avoid any problems with your sensitive data:
 3. Go to API keys -> **Create key**
 4. Give it a name and copy it. 
 5. Save it in secure place.
+
+:pen: **If you don't want to pay for now and you are testing, I recommend you to create a Gemini API Key**. It is now for free for 90 days and `` 
 
 ## 3.2 Setting up MoltBot
 
@@ -522,6 +526,19 @@ Check out other MCP servers that could be useful for another use of your bot [he
 
 
 # Recommended models
+Obviously, the smarter the model the better for doing complex tasks.
+For our objective, since it is only chatting through Telegram and retrieve information from MCP servers and the interntet, I recommend the cheapest models with some **reasoning** skills.
+
+## Local models
+
+Try with `Ollama` and select models as big as possible regarding your GPU capabilities. For instance, on this [video](https://www.youtube.com/watch?v=Idkkl6InPbU) he selected a 30B parameters `GLM-4.7-flash` model from zAI-org. However, he has a `48 GB NVIDIA A6000 GPU`, so it is not a good reference if you have less than that on your local machine.
+
+## Gemini
+
+I have tried `Gemini 2.5 Flash lite` and it works like a charm! :grin:
+If you want a smarter (but more expensive) model you can go for `Gemini 3 Pro` 
+
+## Anthropic
 
 For low-cost reasoning and tool calling, **Claude Haiku 4.5** is your best option.
 
