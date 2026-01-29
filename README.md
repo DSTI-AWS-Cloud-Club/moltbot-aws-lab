@@ -17,6 +17,7 @@ We will ask the bot to give us the last trends in Data, AI agents and Machine Le
 - If you want to know how people use MoltBot visit its [website](https://clawd.bot/)
 - Video explaining how to install MoltBot in an EC2 instance. [Video from AJ](https://x.com/techfrenAJ/status/2014934471095812547/video/1)
 - To configure a protection against injection attacks follow up the [tutorial](https://github.com/Dicklesworthstone/acip/tree/main/integrations/clawdbot) by Dicklesworthstone.
+- If you want to know about Moltbot's architecture [here is a good explaination by Carlos from Vindler](https://www.vindler.com.br/blog/clawdbot-technical-deep-dive/?utm_source=www.theunwindai.com&utm_medium=newsletter&utm_campaign=clawdbot-and-everything-that-really-matters&_bhlid=ba154170efcfe5614e84ec6dc4c37c2f5337c167)
 
 ### Local models
 - If you want to install a local Ollama model to be used by Moltbot go and visit this [video](https://www.youtube.com/watch?v=Idkkl6InPbU)
