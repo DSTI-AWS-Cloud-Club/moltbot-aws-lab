@@ -1,104 +1,113 @@
-# moltbot-aws-lab
-This lab deploys MoltBot in an EC2 instance and sets up Telegram as an assistant Bot.
+# OpenClaw AWS Lab
+This lab deploys OpenClaw in an EC2 instance and sets up Telegram as an assistant bot.
 
-We will ask the bot to give us the last trends in Data, AI agents and Machine Learning and we will message him through our Telegram account! :grin: 
+We will ask the bot to give us the latest trends in Data, AI agents, and Machine Learning while we message it through our Telegram account! :grin:
 
-**NB**: MoltBot was initially called ClawdBot but Anthropic had issues with the name due to its LLM Claude. That is why the CLI is `clawdbot` for the moment (jan 2026).
+**NB**: OpenClaw is the refreshed name for MoltBot (which itself started life as ClawdBot). The CLI binary is now `openclaw`, but some installers, screenshots, and docs still show the older branding until upstream assets are updated.
 
-### Pre-requisites
-- Having an AWS Free Tier account
-- Have Telegram installed on your phone
-- Having a Claude API key (you MUST pay at least $5 to have one) or a Gemini API key ($300 for FREE during 90 days in AI Studio). 
-    - You can create one [in Claude Platform](https://platform.claude.com/).
-    - You can create your Gemini API key in [AI Studio](https://aistudio.google.com/api-keys)
+## Overview
+- Launch an AWS Free Tier Ubuntu instance and install the OpenClaw CLI.
+- Harden the deployment with injection protection, sandboxing, and audits.
+- Configure API keys, Telegram, and a tailored "soul" for your bot.
+- Expose the Control UI locally, connect MCP servers, and schedule cron jobs.
+- Extend the setup with recommended models and sandbox container builds.
+
+## Table of Contents
+- [Overview](#overview)
+- [Pre-requisites](#pre-requisites)
+- [Resources](#resources)
+- [Part 1. Creating an EC2 instance and installing OpenClaw](#part-1-creating-an-ec2-instance-and-installing-openclaw)
+- [Part 2. Security installs](#part-2-security-installs)
+- [Part 3. Configuring OpenClaw](#part-3-configuring-openclaw)
+- [Part 4. Connecting to OpenClaw's Control UI](#part-4-connecting-to-openclaws-control-ui)
+- [Part 5. Installing MCP servers in OpenClaw](#part-5-installing-mcp-servers-in-openclaw)
+- [Part 6. Setting up a cron job](#part-6-setting-up-a-cron-job)
+- [Part 7. Recommended models](#part-7-recommended-models)
+- [Part 8. Advanced topics](#part-8-advanced-topics)
+
+## Pre-requisites
+- AWS Free Tier account
+- Telegram installed on your phone
+- Either a Claude API key (you must add $5 of credit) or a Gemini API key ($300 in credits for free during 90 days in AI Studio)
+  - Create a Claude key on the [Claude Platform](https://platform.claude.com/)
+  - Create a Gemini key in [AI Studio](https://aistudio.google.com/api-keys)
 
 ## Resources
-### Clawdbot/MoltBot
-- If you want to know how people use MoltBot visit its [website](https://clawd.bot/)
-- Video explaining how to install MoltBot in an EC2 instance. [Video from AJ](https://x.com/techfrenAJ/status/2014934471095812547/video/1)
-- To configure a protection against injection attacks follow up the [tutorial](https://github.com/Dicklesworthstone/acip/tree/main/integrations/clawdbot) by Dicklesworthstone.
+
+### OpenClaw resources (legacy links still valid)
+- Learn how people use OpenClaw on its [website](https://clawd.bot/)
+- Walkthrough video for installing OpenClaw in an EC2 instance: [Video from AJ](https://x.com/techfrenAJ/status/2014934471095812547/video/1)
+- Injection protection tutorial by Dicklesworthstone (legacy repo path still uses the previous name): [tutorial link](https://github.com/Dicklesworthstone/acip/tree/main/integrations/clawdbot)
+
 
 ### Local models
-- If you want to install a local Ollama model to be used by Moltbot go and visit this [video](https://www.youtube.com/watch?v=Idkkl6InPbU)
+- Install a local Ollama model for OpenClaw with this [video tutorial](https://www.youtube.com/watch?v=Idkkl6InPbU)
 
-### About MPC
-- A [video](https://www.youtube.com/watch?v=w-rXEUTOIas) for providing MPCs to your Vibe tool: Codex, Cursor, Claude Code or Droid.
-
+### About MCP
+- Overview video on providing MCPs to your Vibe tool (Codex, Cursor, Claude Code, or Droid): [YouTube link](https://www.youtube.com/watch?v=w-rXEUTOIas)
 
 ### Gemini
-- Gemini API, create an account in [AI Studio](https://aistudio.google.com/api-keys) and receive $300 in credits **for FREE** for *90 days*. In the **Overview** page you will be able to monitor the use of your $300 :grin:
-- Gemini API [Prices](https://ai.google.dev/gemini-api/docs/pricing)
+- Create a Gemini API account in [AI Studio](https://aistudio.google.com/api-keys) and receive $300 in credits for 90 days. Use the **Overview** page to monitor spending :grin:
+- Review the [Gemini API pricing](https://ai.google.dev/gemini-api/docs/pricing)
 
+## Part 1. Creating an EC2 instance and installing OpenClaw
 
-# Part 1. Creating an EC2 instance and installing MoltBot
-
-## 1.1 Creating an EC2 instance in AWS Free Tier account
-
-1. In AWS Dashboard, navigate to **EC2 Console** 
-2. Select *Instances* and *Launch Instances*
-3. Name: MoltBot
-4. OS: Select *Ubuntu*, with *Ubuntu Server 24.04*
-5. Instance type: **t2.micro** or **t3.micro** (Free Tier eligible)
-    You can check the eligibility of your Free tier account by executing this in a Terminal:
+### 1.1 Creating an EC2 instance in an AWS Free Tier account
+1. In the AWS Dashboard, navigate to **EC2 Console**.
+2. Select **Instances** and **Launch Instances**.
+3. Name the instance `OpenClaw`.
+4. OS: select *Ubuntu* with *Ubuntu Server 24.04*.
+5. Instance type: choose **t2.micro** or **t3.micro** (Free Tier eligible). You can check Free Tier eligibility with:
     ```bash
     aws ec2 describe-instance-types \
     --filters Name=free-tier-eligible,Values=true \
     --query "InstanceTypes[*].[InstanceType]" \
     --output text | sort
     ```
-6. Key pair: Generate a .pem key pair (we will use it later for the ssh tunnel)
-7. Storage: Since we are not going to install local LLMs, `8 GB` is enough. If we were to install *Ollama*, we would need up to `60 GB` depending on the model we want to install locally.
-8. Launch Instance
-9. Go to **Instances**. Select the instance and click **Connect**
-10. Then click **Connect** and a web terminal will be open with the Ubuntu instance.
+6. Key pair: generate a `.pem` key pair (needed later for the SSH tunnel).
+7. Storage: `16 GB` is enough if you are not installing local LLMs. Installing Ollama can require up to `60 GB` depending on the model. Without a GPU there is little value in provisioning 60 GB.
+8. Launch the instance.
+9. Go to **Instances**, select the instance, and click **Connect**.
+10. Click **Connect** again to open the browser-based Ubuntu terminal.
 
-## 1.2 Installing MoltBot
+### 1.2 Installing OpenClaw
+1. Inside the EC2 instance, run:
 
-1. Inside the EC2 instance, execute the line:
+   `curl -fsSL https://molt.bot/install.sh | bash`
 
-`curl -fsSL https://molt.bot/install.sh | bash`
+2. This downloads OpenClaw; wait a few minutes for the installer to pop up (installer URL still lives under the molt.bot domain for now).
 
-2. This will download MoltBot, wait a few minutes for the installer to pop up
+![OpenClaw onboard wizard (legacy splash)](/assets/moltbot-onboard.JPG)
 
-![moltbot-onboard](/assets/moltbot-onboard.JPG)
+3. Before configuring anything, answer **No** and reboot the instance so you can access the `openclaw` CLI.
+4. Reboot with `sudo reboot`. Wait a few seconds and reconnect.
+5. Confirm the CLI is installed: `openclaw help`.
 
-3. Before setting everything up, say **No** first and reboot the instance, so we can have access to `clawdbot` CLI.
+**Before going any further, stop the bot with `Ctrl+C` and complete the security installs.**
 
-4. Reboot the instance `sudo reboot`. Wait for some seconds and refresh the connection
-5. Check that clawdbot is installed `clawdbot help`
-
-**Before going any further. Stop the bot `ctrl + C` and do the security installs**
-
-# Part 2. SECURITY INSTALLS
+## Part 2. Security installs
 **Protecting your personal information**
 
-As we give rights to connect to our personal data, mail, phone, etc the security is vital.
+Granting the bot access to email, phone, or files requires careful security. Walk through each hardening step and review the X post from OpenClaw creator Peter Steinberg.
 
-We should go through several security checks.
+![Security checklist shared by Peter Steinberg](/assets/security-clawdbot.JPG)
 
-See the X message from MoltBot creator Peter Steinberg.
+### 2.1 Injection attacks
+Configuring injection protection should be your first security task. Follow this [tutorial](https://github.com/Dicklesworthstone/acip/tree/main/integrations/clawdbot) by Dicklesworthstone (legacy repo name, but the guidance still applies to OpenClaw).
 
-![security-checks](/assets/security-clawdbot.JPG)
-
-## 2.1 Injection attacks
-One of the first things to configure in MoltBot is a protection against injection
-
-Go to this [tutorial](https://github.com/Dicklesworthstone/acip/tree/main/integrations/clawdbot) by Dicklesworthstone.
-
-## 2.2 Add a sandbox configuration (Skip for now)
-
-You can isolate each session inside a sandbox. The sessions will run in a docker container, isolating each session.
+### 2.2 Add a sandbox configuration (optional)
+You can isolate each session inside a Docker-based sandbox to protect the host.
 
 ```bash
-nano ~/.clawdbot/clawdbot.json
+nano ~/.openclaw/openclaw.json
 ```
 
-Paste **before the compaction part**
+Paste **before the `compaction` block**:
 
 ```json
 ----- COPY THIS PART ONLY --------
 "sandbox": {
-       "mode": "off", // you can turn it to all if you want full sandbox isolation
+       "mode": "off", // set to "all" for full sandbox isolation
        "scope": "session",
        "workspaceAccess": "none"
        },
@@ -106,10 +115,10 @@ Paste **before the compaction part**
  # DO NOT COPY THIS
       "compaction": {
         "mode": "safeguard"
-``` 
+```
 
-#### 2.2.1 Install docker in Ubuntu (skip if no sandbox used)
-We need Docker installed in the machine to be able to activate the Sandbox option. The sandbox option will run a container per-session so it will isolate the machine from access by an intruder. 
+#### 2.2.1 Install Docker in Ubuntu (skip if no sandbox)
+Docker must be installed to enable sandboxing. Each session runs inside its own container to limit exposure.
 
 ```bash
 # Add Docker's official GPG key:
@@ -137,18 +146,18 @@ sudo systemctl status docker
 sudo systemctl start docker
 ```
 
-#### 2.2.2 Finding problems with docker.
-Maybe a solution is to add the user to the docker group.
+#### 2.2.2 Troubleshooting Docker
+If Docker commands fail, add your user to the `docker` group.
 
 ```bash
-# 1) Make sure Docker is installed and running
+# 1) Ensure Docker is installed and running
 sudo systemctl enable --now docker
 sudo systemctl status docker --no-pager
 
-# 2) Add your current user to docker group
+# 2) Add your current user to the docker group
 sudo usermod -aG docker $USER
 
-# 3) Apply new group membership (choose ONE)
+# 3) Apply the new group membership (choose ONE)
 newgrp docker
 # or log out and log back in (SSH: disconnect/reconnect)
 
@@ -156,105 +165,108 @@ newgrp docker
 docker ps
 ```
 
-#### 2.2.3 Restart 
-To apply changes:
+#### 2.2.3 Restart services
+Apply the sandbox changes:
 
-`clawdbot gateway restart`
+`openclaw gateway restart`
 
-And restart the instance:
+Then reboot the instance:
 
 `sudo reboot`
 
-## 2.3 Run an audit
-Every time you add a new feature (e.g. connection to Telegram), you can run a security audit to ask MoltBot if everything is safe.
+### 2.3 Run an audit
+Whenever you add a new feature (for example, a Telegram connection), run a security audit to confirm the configuration is safe. Read the details [here](https://docs.molt.bot/cli/security).
 
-Read the details in [here](https://docs.molt.bot/cli/security)
+`openclaw security audit`
 
-`clawdbot security audit`
+`openclaw security audit --deep` (deeper insight)
 
-`clawdbot security audit --deep` (to have a deeper insight in the audit)
+`openclaw security audit --fix` (auto-remediate detected issues)
 
-`clawdbot security audit --fix` (to fix the security problems)
+### 2.4 Security notes
+For broader security context, watch this [video](https://www.youtube.com/watch?v=AbCHaAeqC_c) and follow the steps.
 
-## 2.4 Security Notes
+:warning: Be careful about the data you permit your bot to access. Sensitive data leakage is your responsibility.
 
-To have more insights on security issues in MoltBot, watch this [video](https://www.youtube.com/watch?v=AbCHaAeqC_c) and implement the step by step.
-
-:warning: Be careful about what you permit your bot to have access to! If you suffer sensitive data leakage, it is at your own responsibility!
-
-To avoid any problems with your sensitive data:
+To minimize risk:
 - Read the [documentation](https://docs.molt.bot/)
-- Research about how to best configure your new feature before deploying it
-- Be aware of what the bot will have access to and also other agents interacting with the bot.
+- Research each feature before deploying it
+- Understand what the bot and external agents can access
 
-# Part 3. Configuring MoltBot
+## Part 3. Configuring OpenClaw
 
-## 3.1 Creating an Anthropic API KEY
-1. Go to [Claude Platform](https://platform.claude.com/).
-2. Create an account and add a billing payment method
-3. Go to API keys -> **Create key**
-4. Give it a name and copy it. 
-5. Save it in secure place.
+### 3.1 Creating an Anthropic API key
+1. Visit the [Claude Platform](https://platform.claude.com/).
+2. Create an account and add a billing method.
+3. Navigate to **API keys** and click **Create key**.
+4. Name and copy the key.
+5. Store it securely.
 
-:pen: **If you don't want to pay for now and you are testing, I recommend you to create a Gemini API Key**. It is now for free for 90 days and `` 
+:pen: **If you want to test without paying yet, request a Gemini API key instead. It is free for 90 days with $300 in credits.**
 
-## 3.2 Setting up MoltBot
+### 3.2 Setting up OpenClaw
+1. Run the onboard interface:
 
-1. Run the onboard interface
-`clawdbot onboard`
-2. Select `Yes` 
-3. Select `Quick Start`
-4. Select 
-    - if you have an Anthropic API key: `Anthropic -> Anthropic API KEY`
-    - if you have a Google Gemini API key: `Google -> Gemini API KEY`
-5. Paste your API KEY here and tap ENTER
-6. Select `Haiku 4.5 (latest --k reasoning)`
+   `openclaw onboard`
 
-## 3.3 Setting up Telegram
-7. In the onboard interface
-8. Select `Telegram`
-  - Open Telegram and chat with @BotFather             
-  - Run /newbot (or /mybots)  
-  - Send a unique name for your bot: `MyAwesomeAssistant`                          
-  - Copy the token (looks like 123456:ABC...)       
-9. Paste your token id and tap ENTER
-    9.1 Now open your Telegram App in your phone and search for `@YOUR_BOT_NAME`. Click `START` and you will receive a message like this:
+2. Select **Yes**.
+3. Choose **Quick Start**.
+4. Pick your provider:
+   - Anthropic API key: `Anthropic -> Anthropic API KEY`
+   - Google Gemini API key: `Google -> Gemini API KEY`
+5. Paste your API key and press Enter.
+6. Select `Haiku 4.5 (latest --k reasoning)`.
+
+### 3.3 Setting up Telegram
+7. From the onboard interface, choose **Telegram**.
+8. Follow @BotFather in Telegram:
+   - Run `/newbot` (or `/mybots`).
+   - Provide a unique name for your bot, e.g., `MyAwesomeAssistant`.
+   - Copy the token (format `123456:ABC...`).
+9. Paste the token into the onboard prompt and press Enter.
+   9.1. In Telegram, search for `@YOUR_BOT_NAME`, click **START**, and you will receive a message like:
 
         ```
-        Clawdbot: access not configured.
+        OpenClaw: access not configured.
 
         Your Telegram user id: ________
 
         Pairing code: __________
 
         Ask the bot owner to approve with:
-        clawdbot pairing approve telegram <code>
+        openclaw pairing approve telegram <code>
         ```
 
-    9.2 Copy the entire message and paste it into the EC2 instance terminal.
-    9.3 You can now chat with your Bot! :alien:
+   9.2. Copy the entire message and paste it into the EC2 terminal.
+   9.3. You can now chat with your bot! :alien:
 
-10. For the rest of the questions, say **No / Skip for now**.
+10. For the remaining prompts, choose **No / Skip for now**.
 
-## 3.4 Giving a duty and instructions to the Bot
+### 3.4 Giving a duty and instructions to the bot
+11. :warning: Stop when prompted about **Hatch in TUI**.
+12. Select **Hatch in TUI**.
+13. Start chatting with the bot.
+14. When it asks for your name, provide one (e.g., `DSTI`).
+15. When asked about its personality, define the bot's duty.
 
-11. :warning: Stop when it asks you about **Hatch in TUI** 
-12. Select **Hatch in TUI**
-13. Now we are starting to chat to our bot
-14. When he asks you your name, give it e.g. `DSTI`
-15. Then he will ask you about his personality. Here you define the task of the bot.
-
-Since we are going to use this bot to look for trends in Tech, we will define the following:
-
-First, give the bot a name:
+Give the bot a name:
 ```
 Your name is <YOUR_BOT_NAME>.
-``` 
+```
 
-Then, define its soul and duty.
+Then define its soul and duty, for example:
 
 ```text
-You are “PySprint”, a daily Python coaching bot for a Data Scientist / Data Engineer.
+You are an AI assistant designed to be diligent, organized, and proactive. Your mission is to help me grow as an AI Engineer while keeping my day-to-day life structured and under control. Prioritize: (1) clear next actions, (2) correctness, (3) time-saving. Communicate concisely, ask clarifying questions only when necessary, and propose sensible defaults when information is missing.
+
+You are my learning partner for Python, Linux, Data Engineering, Data Science, and AI/ML systems. When teaching, use step-by-step explanations, small examples, and quick checks for understanding. When coding, prefer maintainable solutions: readable structure, comments, tests where useful, and safe handling of credentials. When troubleshooting, start with hypotheses, then minimal commands to confirm.
+
+You can work with my tools (Trello, GitHub, and an email inbox). Use them to: track tasks, break work into checklists, draft and review code, summarize threads, extract action items, and prepare replies. Always protect privacy and security: never expose secrets, request tokens/keys through secure means, and confirm before performing any irreversible actions.
+```
+
+### 3.4.1 Asking for a format of the Python lessons
+
+```text
 
 MISSION
 - Help the user improve Python coding skill every day with a short, practical digest they can read on a phone.
@@ -297,7 +309,7 @@ Prioritize DS/DE-relevant Python:
 - Type hints + dataclasses for maintainability
 - Error handling + defensive coding
 - Performance wins (profiling mindset, reducing Python-level loops when possible)
-Avoid long lectures, too many new concepts/day, and unnecessary math.
+Avoid long lectures, too many new concepts per day, and unnecessary math.
 
 DAILY DIGEST FORMAT (MOBILE-FIRST, <5 MIN READ)
 Return exactly this structure:
@@ -357,28 +369,26 @@ You may have access to MCP servers such as:
 
 TOKEN-SAVING OPERATING PATTERN
 1) Retrieve-first, then reason:
-   - If the user asks anything that benefits from external info (library behavior, new syntax, docs, best practice claims),
-     call the appropriate MCP tool to fetch minimal relevant snippets FIRST.
+   - If the user asks anything that benefits from external info (library behavior, new syntax, docs, best practice claims), call the appropriate MCP tool to fetch minimal relevant snippets FIRST.
    - Only then write the answer using those snippets.
-   - Never paste long pages. Never “guess” when a snippet can be retrieved.
+   - Never paste long pages. Never "guess" when a snippet can be retrieved.
 
 2) Aggressive dedupe:
    - If multiple sources repeat the same content, keep the single best source (+ 1 secondary max).
-   - Avoid reporting the same idea twice in one digest.
+   - Avoid repeating the same idea twice in one digest.
 
 3) Hard caps on context:
    - Cap tool outputs to the smallest useful sections (top 1–3 passages, shortest relevant chunk).
    - Prefer bullet summaries of tool results.
 
 4) Cache to avoid re-sending:
-   - Maintain and reuse compact memory: user level estimates, recurring pitfalls, “already covered concepts”.
+   - Maintain and reuse compact memory: user level estimates, recurring pitfalls, "already covered concepts".
    - If storage MCP exists, store:
      - daily concept IDs, exercise results, common mistakes,
      - source → short abstract (so repeated topics cost near-zero).
 
 5) Execute instead of over-explaining:
-   - When debugging or validating, prefer running tests/code via E2B (if available) and report only:
-     pass/fail + minimal diff + 1–3 insights.
+   - When debugging or validating, prefer running tests/code via E2B (if available) and report only pass/fail + minimal diff + 1–3 insights.
    - Do not produce long speculative debugging narratives.
 
 6) Keep outputs short by design:
@@ -387,7 +397,7 @@ TOKEN-SAVING OPERATING PATTERN
 
 TOOL USAGE RULES
 - Use tools only when they reduce tokens or increase accuracy.
-- Never fabricate sources, outputs, or “tool results”.
+- Never fabricate sources, outputs, or tool results.
 - If tools are unavailable, state assumptions briefly and keep guidance conservative.
 
 SAFETY / INTEGRITY
@@ -398,58 +408,71 @@ If the user specifies constraints (pandas-heavy, backend-heavy, interview prep, 
 
 ```
 
-If you have any doubts go to the [video from AJ](https://x.com/techfrenAJ/status/2014934471095812547/video/1) where he explains it step-by-step.
+If you have doubts, watch [AJ's video](https://x.com/techfrenAJ/status/2014934471095812547/video/1) for a full walkthrough.
 
-# Part 4. Connecting to Moltbot's Control UI
-1. Take the `.pem` key of your EC2 instance
-2. Open a linux/WSL terminal in your local machine
-3. type:
+## Part 4. Connecting to OpenClaw's Control UI
+1. Locate the `.pem` key of your EC2 instance.
+2. Open a Linux/WSL terminal on your local machine.
+3. Run:
 
-`sudo ssh -L 18789:127.0.0.1:18789 -i <your .pem file path> ubuntu@<YOUR_INSTANCE_PUBLIC DNS>`
+   `sudo ssh -L 18789:127.0.0.1:18789 -i <your .pem file path> ubuntu@<YOUR_INSTANCE_PUBLIC DNS>`
 
-This will create an SSH tunnel listening on Clawdbot's dashboard address at `0.0.0.0:18789`
+This creates an SSH tunnel that exposes OpenClaw's dashboard at `0.0.0.0:18789`.
 
-4. Open a browser in your local machine and type `127.0.0.1:18789`. You should see the Dashboard!
+4. Open a browser on your local machine and go to `127.0.0.1:18789`. The dashboard should load.
 
-However, it throws an error...we should configure the token.
+If you see an error, configure the token.
 
-5. In the EC2 instance, copy the **token** from the config file:
+5. On the EC2 instance, copy the **token** from `~/.openclaw/openclaw.json`.
+6. Rapid (less secure) solution:
+   - Use a private/incognito browser window because you will pass the token in the URL.
+   - Browse to `127.0.0.1:18789/?token=<PASTE_YOUR_AUTH_TOKEN>`.
+   - Bookmark or save the address carefully.
 
-You can obtain it by typing: `cat ~/.clawdbot/clawdbot.json`
+You should now have access to the OpenClaw dashboard :grin:
 
-This *gateway token* permits you to connect to the dashboard. :warning: **Save this token as a password in a safe place**
+## Part 5. Installing MCP servers in OpenClaw
+Install OpenClaw's `mcporter` skill to connect to MCP servers easily.
 
-6. Rapid solution (not the safest): 
-  - Open a **private browser** :warning: It is important to be a private browser as we are adding the token on the address
-  - In your browser type the following address `127.0.0.1:18789/?token=<PASTE_YOUR_AUTH_TOKEN>` 
-  - be careful to bookmark or save this address
+We recommend you to install OpenClaw's *mcporter* skill, to be able to connect to MCP servers easily with OpenClaw.
 
-You should have access now to Clawdbot's Dashboard :grin:
+We recommend you to install OpenClaw's *mcporter* skill, to be able to connect to MCP servers easily with OpenClaw.
 
-## Installing MCP servers in our bot
+In your EC2 instance terminal, run:
 
-### Exa MCP
+`npm install -g mcporter`
+
+
+# Part 5. Installing MCP servers in OpenClaw
+
+We recommend you to install OpenClaw's *mcporter* skill, to be able to connect to MCP servers easily with OpenClaw.
+
+In your EC2 instance terminal, run:
+
+`npm install -g mcporter`
+
+### 5.1 Exa MCP
+Before starting to chat, we must optimize the web searches of the bot. A good idea is to connect it to Exa MCP server:
 Before starting to chat, we must optimize the web searches of the bot. A good idea is to connect it to Exa MCP server:
 
-- Install MCP Exa (web searches). More info [here](https://mcpmarket.com/server/exa)
 
-Tell the bot to:
+Tell the bot:
 
 ```text
 Create a skill by wrapping this MCP:
 https://mcp.exa.ai/mcp?tools=web_search_exa,web_search_advanced_exa,get_code_context_exa,deep_search_exa,crawling_exa,company_research_exa,linkedin_search_exa,deep_researcher_start,deep_researcher_check
 ```
 
-### Git MCP
-With GitMCP we can convert any repo into an MCP server.
+### 5.2 Git MCP
 
-To do that, we have selected three.
-Send this to the chat bot:
+GitMCP can expose any GitHub repo as an MCP server. Visit [https://gitmcp.io/](https://gitmcp.io/) to convert repositories.
+
+#### 5.2.1 Example: Give access to github repos about python on Data
 
 ```text
-I want you to add a skill and wrap it around the following mcp git repos with python courses  [https://gitmcp.io/darshilparmar/python-for-data-engineering https://gitmcp.io/jakevdp/PythonDataScienceHandbook https://gitmcp.io/dabeaz-course/python-mastery].
+I want you to add a skill and wrap it around the following MCP Git repos with Python courses [https://gitmcp.io/darshilparmar/python-for-data-engineering https://gitmcp.io/jakevdp/PythonDataScienceHandbook https://gitmcp.io/dabeaz-course/python-mastery].
 
-Here is some information for you SKILL.md file:
+Here is some information for your SKILL.md file:
 [
 
 GIT MCP SOURCES (COURSE PACK)
@@ -464,70 +487,179 @@ You have access to a Git MCP server endpoint that exposes these repositories:
 3) Python Mastery (advanced Python exercises/curriculum)
 - https://gitmcp.io/dabeaz-course/python-mastery
 
-HOW TO USE GIT MCP (TOKEN-SAVING RETRIEVAL RULES)
-- Goal: build the daily digest using minimal repo slices (never load large notebooks end-to-end).
-- Every day, choose exactly ONE “primary source repo” based on the user’s current focus:
-  - If user focus = Data Engineering → prefer python-for-data-engineering
-  - If user focus = pandas/numpy/ML tooling → prefer PythonDataScienceHandbook
-  - If user focus = core/advanced Python fluency → prefer python-mastery
-- Retrieve only what you need:
-  1) List directories (high-level) to locate the best small lesson/exercise file.
-  2) Read at most ONE lesson/exercise file (or an index + one exercise).
-  3) If a file is long, extract only the relevant section and summarize it.
-- Hard caps:
-  - Max 1–2 file reads per daily digest.
-  - Prefer short markdown/text files over notebooks; avoid big .ipynb reads unless absolutely necessary.
-  - Do not include large code dumps in the digest. Keep examples 6–12 lines.
-- Deduplicate:
-  - If multiple files cover the same concept, pick the smallest/clearest one.
-- Cache what you used:
-  - Track (repo, path, concept tag, date) so you do not reuse the same file too soon unless it’s a review day.
+### MCP Resources (Python)
 
-DAILY CONTENT CONSTRUCTION USING GIT MCP
-- Step 1: Decide today’s focus (one of):
-  A) Clean Python fundamentals & idioms
-  B) DS tooling (NumPy/pandas)
-  C) DE patterns (IO, data formats, pipeline-like code)
-  D) Reliability (tests, error handling, logging)
-  E) Performance (profiling mindset, vectorization, algorithmic improvements)
-- Step 2: Use Git MCP to fetch minimal context from the best repo for that focus.
-- Step 3: Generate the PySprint Daily digest:
-  - Micro-concept must be grounded in the retrieved content.
-  - The micro-exercise should be original but aligned with the retrieved lesson theme.
-  - Add a short “Source” link to the specific file(s) you used.
+Added via `mcporter` for daily lessons and on-demand lookups:
 
-SOURCE CITATION RULES (IMPORTANT)
-- Always cite the exact Git MCP URL(s) for the file(s) you read.
-- Never claim you used repo content unless you actually retrieved it.
-- If Git MCP retrieval fails/unavailable, proceed with a conservative, standard-library based lesson and label it as “no source today”.
+- **python-data-eng**: Darshil Parmar's Python for Data Engineering
+- **python-ds-handbook**: Jake VanderPlas's Data Science Handbook
+- **python-mastery**: David Beazley's Advanced Python Mastery
 
-ROTATION STRATEGY (TO AVOID REPETITION)
-- Prefer a weekly rotation unless the user requests otherwise:
-  - Mon/Wed/Fri: python-mastery (core/advanced Python)
-  - Tue/Thu: PythonDataScienceHandbook (NumPy/pandas patterns)
-  - Sat: python-for-data-engineering (DE practice)
-  - Sun: Review day (repeat a weak area with a new exercise)
-- Adapt rotation automatically based on user performance and preferences.
+**Usage Examples:**
+- `mcporter call python-mastery.search_python_mastery_docs query="metaclasses"`
+- `mcporter call python-ds-handbook.search_repo_code query="pandas join"`
+- `mcporter call python-data-eng.fetch_repo_docs`
 
-OUTPUT MUST REMAIN <5 MIN READ
-- Do not include more than:
-  - 5 bullets in TL;DR (if present)
-  - 12 lines of code in the example
-  - 4 self-check bullets/asserts
-  - 1 stretch item
+
+
 ]
 ```
 
+# Part 6. Setting up a cron job
+
+We can set up a cron job in OpenClaw by two ways:
+
+- Manually in the Dashboard UI (http://127.0.0.1 -> go to **Cron jobs**) or with the openclaw CLI
+
+
+
+
+
+
+- Manually in the Dashboard UI (http://127.0.0.1 -> go to **Cron jobs**) or with the openclaw CLI
+
+
+```bash
+openclaw cron add <json-string>
+```
+
+The json must look like:
+
+The json must look like:
+
+
+```json
+openclaw cron add '{
+  "name": "hourly-stretch",
+  "schedule": {
+    "kind": "cron",
+
+    "expr": "0 * * * *", 
+
+
+    "expr": "0 * * * *", 
+
+    "tz": "UTC"
+  },
+  "sessionTarget": "isolated",
+  "payload": {
+    "kind": "agentTurn",
+
+    "to": "<SET_TG_USER_ID>", 
+
+
+    "to": "<SET_TG_USER_ID>", 
+
+    "channel": "telegram",
+    "deliver": true,
+    "message": "Send me a quick message reminding me to stretch and drink water."
+  }
+}'
+
+
+
+
+```
+- Asking the bot to do it for you!
+- Asking the bot to do it for you!
+
+
+```
+Create a cron job every day at 9 AM. Use ONLY the MCP references I gave you regarding python courses on ML, Data engineering and advanced coding. Reference the source and change the lesson content each day.
+```
+
+
+An example of my daily python lesson cron job description is this (generated by a gemini-3-pro model :grin:):
+
+
+An example of my daily python lesson cron job description is this (generated by a gemini-3-pro model :grin:):
+
+
+```md
+Generate an INTERMEDIATE-LEVEL technical lesson for <YOUR_USER_NAME> on **Python Development**. **📚 SOURCE MATERIAL REQUIREMENT:** You **MUST** use the `mcporter` tool to search or fetch content from one of the following configured servers: - `python-mastery` (David Beazley's course) - `python-ds-handbook` (Jake VanderPlas) - `python-data-eng` (Darshil Parmar) **Find a specific, practical concept or code pattern in these repos and base the lesson on it.** Do not generate generic content from memory. **Lesson Content:** Focus on practical, real-world concepts like decorators, context managers, effective use of stdlib, testing strategies, or data engineering pipelines. Use a Senior Engineer mentor persona. **Structure:** - **SOURCE:** (Link or ref to the specific file/repo you used) - **THE CONCEPT** - **PRACTICAL EXAMPLE** - **THE CODE** (Adapted from the source) - **PRO TIP** Compact the lesson to ~250 words. Format for Telegram (bold caps headers, bullet points, code blocks).
+```
+
+
+This is the result :wink:. As you can see, we have a reference to a real document in case we want to deep dive into the concept within the course :smiley:
+
+This is the result :wink:. As you can see, we have a reference to a real document in case we want to deep dive into the concept within the course :smiley:
+
+![python-lesson-output](/assets/python-lesson-output.png)
+
+
+### NOTES - more MCP courses
+
+I have added to my daily tailored digests, these courses about Linux systems and AI.
+
+
+
+
+
+
+
+### NOTES - more MCP courses
+
+I have added to my daily tailored digests, these courses about Linux systems and AI.
+
+
+#### About Linux systems
+
+```
+
+Now to add to the lessons, about Linux systems, wrapp up these MCPs (https://gitmcp.io/0xAX/linux-insides https://gitmcp.io/bootlin/training-materials https://gitmcp.io/koansoftware/lkmpg)
+
+Now to add to the lessons, about Linux systems, wrapp up these MCPs (https://gitmcp.io/0xAX/linux-insides https://gitmcp.io/bootlin/training-materials https://gitmcp.io/koansoftware/lkmpg)
+```
+
+Now to add to the lessons, about Linux systems, wrapp up these MCPs (https://gitmcp.io/0xAX/linux-insides https://gitmcp.io/bootlin/training-materials https://gitmcp.io/koansoftware/lkmpg)
+```
+
+Now to add to the lessons, about Linux systems, wrapp up these MCPs (https://gitmcp.io/0xAX/linux-insides https://gitmcp.io/bootlin/training-materials https://gitmcp.io/koansoftware/lkmpg)
+```
+
+Now to add to the lessons, about Linux systems, wrapp up these MCPs (https://gitmcp.io/0xAX/linux-insides https://gitmcp.io/bootlin/training-materials https://gitmcp.io/koansoftware/lkmpg)
+```
+
+Now to add to the lessons, about Linux systems, wrapp up these MCPs (https://gitmcp.io/0xAX/linux-insides https://gitmcp.io/bootlin/training-materials https://gitmcp.io/koansoftware/lkmpg)
+```
+
+Now to add to the lessons, about Linux systems, wrapp up these MCPs (https://gitmcp.io/0xAX/linux-insides https://gitmcp.io/bootlin/training-materials https://gitmcp.io/koansoftware/lkmpg)
+```
+#### About AI
+
+RAG, Agents, MCP, etc
+
+```
+Now to add to the lessons, about AI, wrapp up these MCPs
+(https://gitmcp.io/decodingai-magazine/second-brain-ai-assistant-course https://gitmcp.io/nvidia-ai-technology-center/multi-scale-agentic-rag-playbook https://gitmcp.io/towardsai/ai-tutor-rag-system) 
+```
+
+### Insight :bulb:
+
+Here is the token economy of using **MCP** (called *mcporter* skill in OpenClaw) versus the alternatives:
+
+1. Search (Cheap): The agent sends a small query (e.g., search_repo_docs("decorators")). The MCP server does the heavy lifting via GitHub's API and returns only titles and small snippets. This costs very few tokens.
+2. Fetch (Targeted): Based on the search, the agent requests one specific file (e.g., Exercise 7.1 in logcall.py). It reads only that file, not the entire repository or course.
+3. Generation: The model uses that single file as context to write the lesson.
+
+
 ### Other MCP
+Browse additional MCP servers on [mcpmarket.com/leaderboards](https://mcpmarket.com/leaderboards). :warning: Use caution—MCP tools can introduce data leakage risks.
 
-Check out other MCP servers that could be useful for another use of your bot [here](https://mcpmarket.com/leaderboards). 
- :warning: Beware! These MCP tools can lead to personal data leakages, use them wisely!
+## Part 7. Recommended models
+Smarter models handle complex tasks better, but choose the most cost-effective option for your use case. For Telegram chatting plus MCP lookups, inexpensive reasoning models usually suffice.
 
+### Local models
+Try `Ollama` and match the model size to your GPU. In this [video](https://www.youtube.com/watch?v=Idkkl6InPbU), a 30B parameter `GLM-4.7-flash` model from zAI-org is used with a `48 GB NVIDIA A6000 GPU`; scale down if your hardware is smaller.
 
+### Gemini
+`Gemini 2.5 Flash Lite` works very well :grin:. Use `Gemini 3 Pro` if you need more reasoning power (for example, heavy MCP tool calling or token optimization).
 
-# Recommended models
-Obviously, the smarter the model the better for doing complex tasks.
-For our objective, since it is only chatting through Telegram and retrieve information from MCP servers and the interntet, I recommend the cheapest models with some **reasoning** skills.
+### Gemini
+`Gemini 2.5 Flash Lite` works very well :grin:. Use `Gemini 3 Pro` if you need more reasoning power (for example, heavy MCP tool calling or token optimization).
+
+### Anthropic
+For low-cost reasoning and tool calling, **Claude Haiku 4.5** is an excellent option.
 
 ## Local models
 
@@ -536,7 +668,7 @@ Try with `Ollama` and select models as big as possible regarding your GPU capabi
 ## Gemini
 
 I have tried `Gemini 2.5 Flash lite` and it works like a charm! :grin:
-If you want a smarter (but more expensive) model you can go for `Gemini 3 Pro` 
+If you want a smarter (but more expensive) model you can go for `Gemini 3 Pro`. I highly recommend the smarter model if you are trying to do a complex task (such as using mcporter for calling a tool from an MCP server and optimize your tokens.)
 
 ## Anthropic
 
@@ -546,11 +678,64 @@ For low-cost reasoning and tool calling, **Claude Haiku 4.5** is your best optio
 
 - Full tool calling support - can use functions/tools just like the other models
 - Strong reasoning abilities - significantly improved over previous Haiku versions
+
+**Haiku 4.5 offers**:
+
+- Full tool calling support - can use functions/tools just like the other models
+- Strong reasoning abilities - significantly improved over previous Haiku versions
+
 - Lowest cost in the Claude 4.5 family
-- Fast response times - ideal for high-volume applications
+- Fast responses for high-volume workloads
 
-It's designed specifically for use cases where you need reliable performance on tasks like tool use, data extraction, and structured reasoning, but want to optimize costs. For many common agentic workflows and tool-calling tasks, Haiku 4.5 performs very well while being substantially cheaper than Sonnet or Opus.
-That said, if your tasks require **more complex reasoning**, nuanced judgment, or handling particularly challenging tool-calling scenarios, you might want to test Haiku against **Claude Sonnet 4.5** to see if the cost-performance tradeoff makes sense for your specific use case.
-I'd recommend starting with Haiku 4.5 and only upgrading if you hit limitations.
+If you need deeper reasoning or more complex tool flows, test **Claude Sonnet 4.5** and compare cost/performance. Start with Haiku 4.5 and upgrade only if you hit limitations.
 
 
+# Part 8. Advanced topics
+
+# Part 8. Advanced topics
+
+## 8.1 Building Docker image in OpenClaw sandbox
+
+# Part 8. Advanced topics
+
+
+
+## 8.1 Building Docker image in OpenClaw sandbox
+
+In the EC2 instance, copy the `/config` folder to `$HOME`.
+
+In the EC2 instance, copy the `/config` folder to `$HOME`.
+
+IMPORTANT:  copy the `/config` folder in this repo to `$HOME`
+
+1. In `$HOME` directory, execute: 
+
+```bash
+docker build docker -t <YOUR_IMAGE_NAME> -f ~/.openclaw/sandbox/Dockerfile.sandbox.skills ~/.openclaw/sandbox
+```
+
+2. Update `openclaw.json` in `~/.openclaw/openclaw.json`.
+3. Rebuild the sandbox image: `openclaw sandbox recreate --all`.
+
+
+
+## 8.2 Testing sandbox environment
+
+
+
+
+
+
+
+
+## 8.2 Testing sandbox environment
+
+
+```bash
+openclaw agent --to agent:main:test --message "Run: which obsidian-cli && brew --version"
+```
+
+If the dependencies are installed and set, they should be available within the sandbox environment.
+
+
+If the dependencies are installed and set, they should be available within the sandbox environment.

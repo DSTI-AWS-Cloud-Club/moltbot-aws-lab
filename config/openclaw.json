@@ -1,0 +1,199 @@
+{
+  "meta": {
+    "lastTouchedVersion": "2026.1.30",
+    "lastTouchedAt": "2026-02-02T16:43:35.905Z"
+  },
+  "wizard": {
+    "lastRunAt": "2026-02-02T16:43:35.900Z",
+    "lastRunVersion": "2026.1.30",
+    "lastRunCommand": "doctor",
+    "lastRunMode": "local"
+  },
+  "auth": {
+    "profiles": {
+      "google:default": {
+        "provider": "google",
+        "mode": "api_key"
+      }
+    }
+  },
+  "agents": {
+    "defaults": {
+      "model": {
+        "primary": "google/gemini-3-pro-preview"
+      },
+      "models": {
+        "google/gemini-2.5-flash-lite": {},
+        "google/gemini-3-pro-preview": {},
+        "google/gemini-3-flash-lite": {}
+      },
+      "workspace": "/home/ubuntu/.openclaw/workspace",
+      "compaction": {
+        "mode": "safeguard"
+      },
+      "maxConcurrent": 4,
+      "subagents": {
+        "maxConcurrent": 8
+      },
+      "sandbox": {
+        "mode": "all",
+        "workspaceAccess": "rw",
+        "scope": "session",
+        "workspaceRoot": "/home/ubuntu/.openclaw/sandboxes",
+        "docker": {
+          "image": "zbotta-openclaw-sbx:latest",
+          "network": "bridge",
+          "env": {
+            "GEMINI_API_KEY": "${GEMINI_API_KEY}",
+            "GOOGLE_PLACES_API_KEY": "${GOOGLE_PLACES_API_KEY}",
+            "TRELLO_API_KEY": "${TRELLO_API_KEY}",
+            "TRELLO_TOKEN": "${TRELLO_TOKEN}",
+            "GH_TOKEN": "${GH_TOKEN}",
+            "EDITOR": "nano"
+          }
+        }
+      }
+    },
+    "list": [
+      {
+        "id": "main",
+        "default": true,
+        "name": "OpenClaw Main Agent",
+        "workspace": "/home/ubuntu/.openclaw/workspace",
+        "sandbox": {
+          "mode": "off"
+        }
+      }
+    ]
+  },
+  "tools": {
+    "web": {
+      "search": {
+        "enabled": true,
+        "apiKey": "<SET_BRAVE_WEB_SEARCH_API_KEY>"
+      },
+      "fetch": {
+        "enabled": true
+      }
+    },
+    "exec": {
+      "host": "sandbox",
+      "security": "deny",
+      "ask": "on-miss"
+    },
+    "sandbox": {
+      "tools": {
+        "allow": [
+          "exec",
+          "process",
+          "read",
+          "write",
+          "edit",
+          "apply_patch",
+          "sessions_list",
+          "sessions_history",
+          "sessions_send",
+          "sessions_spawn",
+          "session_status"
+        ],
+        "deny": [
+          "browser",
+          "canvas",
+          "nodes",
+          "cron",
+          "discord",
+          "gateway"
+        ]
+      }
+    }
+  },
+  "messages": {
+    "ackReactionScope": "group-mentions"
+  },
+  "commands": {
+    "native": "auto",
+    "nativeSkills": "auto",
+    "restart": true,
+    "useAccessGroups": true
+  },
+  "hooks": {
+    "internal": {
+      "enabled": true,
+      "entries": {
+        "session-memory": {
+          "enabled": true
+        }
+      }
+    }
+  },
+  "channels": {
+    "telegram": {
+      "enabled": true,
+      "dmPolicy": "allowlist",
+      "botToken": "<SET_TELEGRAM_BOT_TOKEN>",
+      "allowFrom": [
+        "<SET_TELEGRAM_USER_ID>"
+      ],
+      "groupPolicy": "allowlist",
+      "streamMode": "partial"
+    }
+  },
+  "gateway": {
+    "port": 18789,
+    "mode": "local",
+    "bind": "loopback",
+    "auth": {
+      "mode": "token",
+      "token": "<SET_GATEWAY_TOKEN>"
+    },
+    "tailscale": {
+      "mode": "off",
+      "resetOnExit": false
+    }
+  },
+  "skills": {
+    "install": {
+      "nodeManager": "npm"
+    },
+    "entries": {
+      "goplaces": {
+        "enabled": true,
+        "env": {
+          "GOOGLE_PLACES_API_KEY": "${GOOGLE_PLACES_API_KEY}"
+        }
+      },
+      "local-places": {
+        "enabled": true,
+        "env": {
+          "GOOGLE_PLACES_API_KEY": "${GOOGLE_PLACES_API_KEY}"
+        }
+      },
+      "trello": {
+        "enabled": true,
+        "env": {
+          "TRELLO_API_KEY": "${TRELLO_API_KEY}",
+          "TRELLO_TOKEN": "${TRELLO_TOKEN}"
+        }
+      },
+      "github": {
+        "enabled": true,
+        "env": {
+          "GH_TOKEN": "${GH_TOKEN}"
+        }
+      },
+      "nano-banana-pro": {
+        "enabled": true,
+        "env": {
+          "GEMINI_API_KEY": "${GEMINI_API_KEY}"
+        }
+      }
+    }
+  },
+  "plugins": {
+    "entries": {
+      "telegram": {
+        "enabled": true
+      }
+    }
+  }
+}

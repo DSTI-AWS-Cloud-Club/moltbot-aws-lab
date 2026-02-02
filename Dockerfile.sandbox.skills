@@ -1,0 +1,89 @@
+FROM debian:bookworm-slim
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV GOBIN=/root/.local/bin
+ENV GO_VERSION=1.25.5
+ENV PATH="/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin:/usr/local/go/bin:/root/.npm-global/bin:/root/.local/bin:/root/.local/share/pnpm:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+ENV UV_CACHE_DIR=/root/.cache/uv
+ENV UV_TOOL_DIR=/root/.cache/uv-tools
+
+# System packages
+RUN set -eux; \
+  apt-get update; \
+  apt-get install -y --no-install-recommends \
+    bash \
+    build-essential \
+    ca-certificates \
+    curl \
+    file \
+    git \
+    gnupg \
+    jq \
+    libssl-dev \
+    nano \
+    pkg-config \
+    python3 \
+    python3-venv \
+    python3-pip \
+    ripgrep \
+    sudo \
+    unzip; \
+  rm -rf /var/lib/apt/lists/*; \
+  mkdir -p /root/.config/himalaya; \
+  mkdir -p "$UV_CACHE_DIR" "$UV_TOOL_DIR"
+
+# Himalaya email client config
+COPY config/himalaya/config.toml /root/.config/himalaya/config.toml
+
+# Python dependencies for skills
+RUN set -eux; \
+  python3 -m pip install --break-system-packages --no-cache-dir pillow google-genai
+
+  # TODO: The install of --break-system-packages --no-cache-dir pillow google-genai is need for uv -> goplaces skill to work. But it brakes during the execution in the container...
+
+# Node.js + global npm prefix
+RUN set -eux; \
+  curl -fsSL https://deb.nodesource.com/setup_20.x | bash -; \
+  apt-get install -y --no-install-recommends nodejs; \
+  mkdir -p /root/.npm-global; \
+  npm config set prefix '/root/.npm-global'; \
+  npm install -g undici; \
+  rm -rf /var/lib/apt/lists/*
+
+# Go toolchain
+RUN set -eux; \
+  curl -fsSLo /tmp/go.tgz "https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz"; \
+  rm -rf /usr/local/go; \
+  tar -C /usr/local -xzf /tmp/go.tgz; \
+  rm /tmp/go.tgz
+
+# Corepack/Pnpm + npm-based skills
+RUN set -eux; \
+  npm install -g corepack@latest; \
+  corepack enable; \
+  corepack prepare pnpm@10.23.0 --activate; \
+  npm install -g clawhub; \
+  npm install -g mcporter
+
+# Install Homebrew as linuxbrew user and native CLIs
+RUN set -eux; \
+  useradd -m -s /bin/bash linuxbrew; \
+  echo 'linuxbrew ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/linuxbrew; \
+  curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh -o /tmp/install-brew.sh; \
+  chmod +x /tmp/install-brew.sh; \
+  su - linuxbrew -c 'NONINTERACTIVE=1 /tmp/install-brew.sh'; \
+  rm /tmp/install-brew.sh; \
+  echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> /etc/profile.d/homebrew.sh; \
+  su - linuxbrew -c 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"; brew update --force --quiet'; \
+  su - linuxbrew -c 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"; brew install gh himalaya tmux'; \
+  su - linuxbrew -c 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"; brew install yakitrak/yakitrak/obsidian-cli steipete/tap/goplaces'; \
+  chmod -R go-w /home/linuxbrew/.linuxbrew
+
+# OpenClaw skill dependencies
+RUN set -eux; \
+  go install github.com/steipete/goplaces/cmd/goplaces@v0.2.0; \
+  uv tool install nano-pdf; \
+  rm -rf /workspace/.cache 2>/dev/null || true; \
+  ln -s "$UV_CACHE_DIR" /workspace/.cache || true
+
+CMD ["sleep", "infinity"]

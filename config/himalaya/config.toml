@@ -1,0 +1,26 @@
+[accounts.gmail]
+email = "zbottabot@gmail.com"
+display-name = "ZbottaBot"
+default = true
+
+backend.type = "imap"
+backend.host = "imap.gmail.com"
+backend.port = 993
+backend.encryption.type = "tls"
+backend.login = "zbottabot@gmail.com"
+backend.auth.type = "password"
+backend.auth.cmd = "echo zrmo ufve ocpb agsa"
+
+[accounts.gmail.folders]
+sent = "[Gmail]/Sent Mail"
+drafts = "[Gmail]/Drafts"
+
+[accounts.gmail.message.send]
+backend.type = "smtp"
+backend.host = "smtp.gmail.com"
+backend.port = 587
+backend.encryption.type = "start-tls"
+backend.login = "zbottabot@gmail.com"
+backend.auth.type = "password"
+backend.auth.cmd = "echo zrmo ufve ocpb agsa"
+save-copy = false
